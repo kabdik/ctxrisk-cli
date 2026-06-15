@@ -1,0 +1,32 @@
+# Scenario A — context reduces risk.
+# Matches §6 Example A in method/Context-Sensitive Risk Score.md:
+#   x_exp = 0.0  — no service, not reachable
+#   x_priv = 0.0 — non-root + read-only rootfs + drop ALL + no privilege escalation
+#   x_mnt = 0.0  — only emptyDir
+#   x_run = 0.0  — see scenario-a-runtime.json (vulnerable package never loaded)
+# Expected: Critical CVE (B=9.0) → R=4.5 (Medium).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: batch-worker
+  labels:
+    app: batch-worker
+spec:
+  containers:
+  - name: app
+    image: example/batch-worker:1.0
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 10000
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+    volumeMounts:
+    - name: scratch
+      mountPath: /tmp
+  volumes:
+  - name: scratch
+    emptyDir: {}
+# No Service, no Ingress, no NetworkPolicy — this pod is unreachable from
+# anywhere outside its own pod IP.

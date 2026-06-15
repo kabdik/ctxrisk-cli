@@ -1,0 +1,19 @@
+{
+  "workload": "pod/public-api",
+  "observation_window_days": 7,
+  "observation_source": "falco-ebpf",
+  "loaded_packages": [
+    "openssl",
+    "libssl",
+    "libcrypto",
+    "nginx",
+    "zlib"
+  ],
+  "observed_symbols": [
+    "openssl.RAND_bytes",
+    "openssl.SHA256_Update",
+    "nginx.ngx_http_handler",
+    "zlib.inflate"
+  ],
+  "_note": "Edit observed_symbols to flip example C between C1 and C2: removing 'openssl.RAND_bytes' makes x_run=0.25 (other symbols observed); removing all openssl symbols makes x_run=0.0 (package loaded but no symbol info → falls back via the 'package loaded, no symbol observed' branch — actually returns 0.5; to get C1=0.0 entirely, remove 'openssl' from loaded_packages too)."
+}

@@ -1,0 +1,40 @@
+# Scenario G — typical microservice with ClusterIP and minimum hardening.
+# Represents the average state of a mature cloud-native deployment.
+# Expected factors:
+#   x_exp = 0.25 — ClusterIP, no Ingress
+#   x_priv = 0.25 — non-root with default capabilities
+#   x_mnt = 0.25 — only mounted secret (no host mounts)
+#   x_run = 0.50 — no observation supplied
+apiVersion: v1
+kind: Pod
+metadata:
+  name: typical-microservice
+  labels:
+    app: typical-microservice
+spec:
+  containers:
+  - name: app
+    image: example/typical-microservice:1.0
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+    volumeMounts:
+    - name: creds
+      mountPath: /var/run/secrets/api
+      readOnly: true
+  volumes:
+  - name: creds
+    secret:
+      secretName: api-token
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: typical-microservice
+spec:
+  type: ClusterIP
+  selector:
+    app: typical-microservice
+  ports:
+  - port: 80
+    targetPort: 8080

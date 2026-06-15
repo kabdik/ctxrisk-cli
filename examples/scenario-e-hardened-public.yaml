@@ -1,0 +1,44 @@
+# Scenario E — hardened but publicly exposed.
+# Tests whether hardening the runtime mitigates Internet exposure.
+# Expected factors:
+#   x_exp = 1.00 — LoadBalancer + internet-facing annotation (public_hint)
+#   x_priv = 0.00 — non-root, read-only rootfs, drop ALL, no priv esc
+#   x_mnt = 0.00 — only emptyDir
+#   x_run = 0.50 — no observation supplied
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hardened-edge
+  labels:
+    app: hardened-edge
+spec:
+  containers:
+  - name: app
+    image: example/hardened-edge:1.0
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 10000
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+    volumeMounts:
+    - name: tmp
+      mountPath: /tmp
+  volumes:
+  - name: tmp
+    emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hardened-edge
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+spec:
+  type: LoadBalancer
+  selector:
+    app: hardened-edge
+  ports:
+  - port: 443
+    targetPort: 8443

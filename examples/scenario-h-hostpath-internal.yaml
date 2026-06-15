@@ -1,0 +1,39 @@
+# Scenario H — hostPath read-write but cluster-internal only.
+# Represents a development/admin tool with host-volume access (e.g. log
+# collector, monitoring agent) that is not exposed outside the cluster.
+# Expected factors:
+#   x_exp = 0.25 — ClusterIP, no Ingress
+#   x_priv = 0.50 — root + default capabilities
+#   x_mnt = 0.75 — hostPath read-write to a non-takeover path
+#   x_run = 0.50 — no observation supplied
+apiVersion: v1
+kind: Pod
+metadata:
+  name: log-collector
+  labels:
+    app: log-collector
+spec:
+  containers:
+  - name: app
+    image: example/log-collector:1.0
+    # No securityContext: runs as root by default
+    volumeMounts:
+    - name: applogs
+      mountPath: /var/log/app
+      # read-write (no readOnly: true)
+  volumes:
+  - name: applogs
+    hostPath:
+      path: /var/log/myapp
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: log-collector
+spec:
+  type: ClusterIP
+  selector:
+    app: log-collector
+  ports:
+  - port: 9090
+    targetPort: 9090

@@ -1,0 +1,39 @@
+# Scenario F — root + Internet-exposed, no host mounts.
+# The classic "legacy app dropped behind an LB" — high exposure and privilege
+# but no container-escape vectors via mounts.
+# Expected factors:
+#   x_exp = 1.00 — LoadBalancer internet-facing
+#   x_priv = 0.50 — root + default capabilities (no explicit securityContext)
+#   x_mnt = 0.00 — only emptyDir
+#   x_run = 0.50 — no observation supplied
+apiVersion: v1
+kind: Pod
+metadata:
+  name: legacy-public
+  labels:
+    app: legacy-public
+spec:
+  containers:
+  - name: app
+    image: example/legacy-public:1.0
+    # No securityContext — runs as root with default capabilities
+    volumeMounts:
+    - name: scratch
+      mountPath: /tmp
+  volumes:
+  - name: scratch
+    emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: legacy-public
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+spec:
+  type: LoadBalancer
+  selector:
+    app: legacy-public
+  ports:
+  - port: 80
+    targetPort: 8080

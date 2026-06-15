@@ -1,0 +1,36 @@
+# Scenario C — the runtime dimension decides the verdict.
+# Matches §6 Example C in method/Context-Sensitive Risk Score.md:
+#   x_exp = 1.0  — LoadBalancer + public_hint
+#   x_priv = 0.25 — non-root but with default capabilities
+#   x_mnt = 0.0  — no host mounts, no secrets
+#   x_run varies — see scenario-c-runtime.json
+# With B=9.0:
+#   C1 (vulnerable symbol never observed, x_run=0.0): R ≈ 8.55 (High)
+#   C2 (vulnerable symbol observed executing, x_run=1.0): R = 10.0 (Critical, clamped)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: public-api
+  labels:
+    app: public-api
+spec:
+  containers:
+  - name: app
+    image: example/public-api:2.3
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: public-api
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+spec:
+  type: LoadBalancer
+  selector:
+    app: public-api
+  ports:
+  - port: 443
+    targetPort: 8080

@@ -1,0 +1,41 @@
+# Scenario B — context amplifies risk.
+# Matches §6 Example B in method/Context-Sensitive Risk Score.md:
+#   x_exp = 1.0  — LoadBalancer + public_hint
+#   x_priv = 1.0 — privileged: true
+#   x_mnt = 1.0  — Docker socket mounted
+#   x_run = 1.0  — see scenario-b-runtime.json (vulnerable symbol observed)
+# Expected: Medium CVE (B=5.0) → R=7.5 (High).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: legacy-controller
+  labels:
+    app: legacy-controller
+spec:
+  containers:
+  - name: app
+    image: example/legacy-controller:0.9
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: dockersock
+      mountPath: /var/run/docker.sock
+  volumes:
+  - name: dockersock
+    hostPath:
+      path: /var/run/docker.sock
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: legacy-controller
+  annotations:
+    # Public-internet annotation (used by ctxrisk via the public_hint flag)
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+spec:
+  type: LoadBalancer
+  selector:
+    app: legacy-controller
+  ports:
+  - port: 443
+    targetPort: 8443

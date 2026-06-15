@@ -1,0 +1,43 @@
+# Scenario D — Kubernetes defaults, cluster-internal.
+# The most common real-world case: a developer applies a manifest with no
+# explicit securityContext, no NetworkPolicy, exposes via ClusterIP.
+# Expected factors:
+#   x_exp = 0.25 — ClusterIP Service, no Ingress
+#   x_priv = 0.50 — root + default capabilities (K8s default)
+#   x_mnt = 0.00 — only emptyDir + secret
+#   x_run = 0.50 — no observation supplied (graceful fallback)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: typical-api
+  labels:
+    app: typical-api
+spec:
+  containers:
+  - name: app
+    image: example/typical-api:1.0
+    # No securityContext — K8s default = root + default caps
+    volumeMounts:
+    - name: tmp
+      mountPath: /tmp
+    - name: creds
+      mountPath: /var/run/secrets/db
+      readOnly: true
+  volumes:
+  - name: tmp
+    emptyDir: {}
+  - name: creds
+    secret:
+      secretName: db-credentials
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: typical-api
+spec:
+  type: ClusterIP
+  selector:
+    app: typical-api
+  ports:
+  - port: 80
+    targetPort: 8080
